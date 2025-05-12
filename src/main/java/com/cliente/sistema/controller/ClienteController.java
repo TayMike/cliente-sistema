@@ -6,8 +6,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.lang.String;
+import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 
@@ -37,7 +39,11 @@ public class ClienteController {
     public ResponseEntity<Cliente> cadastrarClientes(@RequestBody Cliente cliente) {
         try {
             Cliente clienteCadastrado = clienteService.cadastrarCliente(cliente);
-            return ResponseEntity.ok(clienteCadastrado);
+            URI uri = ServletUriComponentsBuilder.fromCurrentRequest()
+                    .path("/{cpf}")
+                    .buildAndExpand(clienteCadastrado.getCpf())
+                    .toUri();
+            return ResponseEntity.created(uri).body(clienteCadastrado);
         } catch(Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
@@ -45,20 +51,22 @@ public class ClienteController {
 
     @PutMapping("/alterar")
     public ResponseEntity<Cliente> alterarClientes(@RequestBody Cliente cliente) {
-        try {
+        Optional<Cliente> clienteVerificado = clienteService.encontrarCliente(cliente.getCpf());
+        if (clienteVerificado.isPresent()) {
             Cliente clienteAlterado = clienteService.alterarCliente(cliente);
             return ResponseEntity.ok(clienteAlterado);
-        } catch(Exception e) {
+        } else {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }
 
-    @DeleteMapping("/deletar/{cpf}")
+    @DeleteMapping("/{cpf}")
     public ResponseEntity<Cliente> deletarClientes(@PathVariable String cpf) {
-        try {
+        Optional<Cliente> cliente = clienteService.encontrarCliente(cpf);
+        if (cliente.isPresent()) {
             clienteService.deletarCliente(cpf);
-            return ResponseEntity.ok().build();
-        } catch(Exception e) {
+            return ResponseEntity.noContent().build();
+        } else {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }
